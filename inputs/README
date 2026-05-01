@@ -1,0 +1,3 @@
+- name list from NLTK male and female name lists
+- city list from https://simplemaps.com/data/world-cities (first 1k cities)
+- both lists filtered down to single-token words (based on gpt2 and pythia vocabularies)
