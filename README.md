@@ -14,4 +14,4 @@ python3 scripts/item_recognition.py inputs/names.txt gpt2 --seed 42 --length 20 
 python3 scripts/calculate_surprisal_reduction.py < raw_output.csv > surp_reduction.csv
 ```
 
-`item_recognition_var{1,2,3}.py` 
+`item_recognition_var{1,2,3}.py` contain the variant prompts evaluated in Appendix B.
