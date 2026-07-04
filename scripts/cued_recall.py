@@ -1,6 +1,5 @@
 import argparse
 import numpy as np
-import sys
 import torch
 
 from transformers import (
@@ -26,7 +25,7 @@ OPT_MODELS = [
     "facebook/opt-13b"
 ]
 
-LIST_COUNT = 500
+LIST_COUNT = 10
 INITIAL = "Please try to remember these sentences."
 TEMPLATE = "{} lives in {}."
 INTERVENING = "Now, after you received all this information, try to concentrate, drink a cup of coffee, go for a walk. Then please complete the following sentence, based on what you read earlier."
@@ -81,33 +80,12 @@ def main():
     elif model_name in OPT_MODELS:
         tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
         model = OPTForCausalLM.from_pretrained(model_name)
-    elif "linear" in model_variant:
-        from transformers import GPTNeoXLinearForCausalLM
-        tokenizer = AutoTokenizer.from_pretrained(model_name, revision="word")
-        model = GPTNeoXLinearForCausalLM.from_pretrained(model_name, revision="word")
-    elif "mamba2" in model_variant:
-        from mamba_ssm.models.mixer_seq_simple import MambaLMHeadModel
-        assert args.gpu, "GPU required for Mamba2"
-        tokenizer = AutoTokenizer.from_pretrained("EleutherAI/gpt-neox-20b")
-        model = MambaLMHeadModel.from_pretrained(model_name)
-    elif "alibi" in model_variant:
-        from transformers import GPTNeoXAlibiForCausalLM
-        tokenizer = AutoTokenizer.from_pretrained(model_name, revision="word")
-        model = GPTNeoXAlibiForCausalLM.from_pretrained(model_name, revision="word")
-    elif "fleeting" in model_variant:
-        from transformers import GPTNeoXFleetingForCausalLM
-        tokenizer = AutoTokenizer.from_pretrained(model_name, revision="word")
-        model = GPTNeoXFleetingForCausalLM.from_pretrained(model_name, revision="word")
-    elif "vanilla" in model_variant:
-        tokenizer = AutoTokenizer.from_pretrained(model_name, revision="word")
-        model = GPTNeoXForCausalLM.from_pretrained(model_name, revision="word")
     elif "pythia" in model_variant:
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         if checkpoint:
             model = GPTNeoXForCausalLM.from_pretrained(
                 model_name,
                 revision=f"step{checkpoint}",
-                cache_dir=f"../cached_lms/{model_variant}/step{checkpoint}",
             )
         else:
             model = GPTNeoXForCausalLM.from_pretrained(model_name)
@@ -117,10 +95,7 @@ def main():
     model.eval()
     model = model.to(device)
     softmax = torch.nn.Softmax(dim=-1)
-    if "mamba2" in model_variant or "mpt" in args.model:
-        bos_id = tokenizer.bos_token_id
-    else:
-        bos_id = model.config.bos_token_id
+    bos_id = model.config.bos_token_id
 
     # pass in add_special_tokens=False for OPT tokenizer
     def tokenize(*args, **kwargs):
@@ -153,7 +128,6 @@ def main():
             else:
                 model_input = torch.tensor(curr_input_ids).unsqueeze(0)
             model_input = model_input.to(device)
-            #print("input:", tokenizer.convert_ids_to_tokens(input_ids), file=sys.stderr)
             model_output = model(model_input)
             # dim: length x vocab
             surps = -torch.log2(softmax(model_output.logits.squeeze(0))).to("cpu")
